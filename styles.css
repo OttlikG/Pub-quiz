@@ -204,6 +204,39 @@ button.ghost {
   font-weight: 600;
 }
 
+.mode-field {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 1rem 0.8rem;
+  margin: 1rem 0;
+}
+.mode-field legend {
+  padding: 0 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mode-option {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.45rem 0;
+  cursor: pointer;
+}
+.mode-option input[type="radio"] {
+  margin-top: 0.35rem;
+  accent-color: var(--accent);
+}
+.mode-option span { display: block; }
+.mode-option strong { display: block; }
+.mode-option small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.1rem;
+}
+
 .hint { color: var(--muted); font-size: 0.9rem; }
 .muted { color: var(--muted); }
 .hidden { display: none !important; }

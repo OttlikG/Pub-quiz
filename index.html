@@ -44,7 +44,25 @@
         <p class="hint" id="saved-empty-hint">Players you add will show up here next time.</p>
       </div>
 
-      <p class="hint">Add at least 2 players. Round 6 will be built from questions the players contribute themselves.</p>
+      <fieldset class="field mode-field">
+        <legend>Question source</legend>
+        <label class="mode-option">
+          <input type="radio" name="mode" value="auto" />
+          <span>
+            <strong>6 auto-picked topics</strong>
+            <small>5 random questions per round, shuffled fresh each quiz.</small>
+          </span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="mode" value="mixed" />
+          <span>
+            <strong>5 auto topics + player Round 6</strong>
+            <small>Each player types a question; can't score on their own.</small>
+          </span>
+        </label>
+      </fieldset>
+
+      <p class="hint">Add at least 2 players, then start the quiz.</p>
       <button id="start-btn" class="primary" disabled>Start quiz</button>
     </section>
   </template>

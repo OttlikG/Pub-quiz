@@ -1,7 +1,8 @@
 (() => {
   const STORAGE_KEY = "pub-quiz-state-v1";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
-  const PLAYER_ROUND_INDEX = 5; // 0-based; round 6
+  const QUESTIONS_PER_ROUND = 5;
+  const TOTAL_ROUNDS = 6;
 
   const app = document.getElementById("app");
   const titleEl = document.getElementById("title");
@@ -10,11 +11,13 @@
   const resetBtn = document.getElementById("reset-btn");
 
   const state = load() || newState();
+  if (!state.mode) state.mode = "auto";
 
   function newState() {
     return {
       phase: "setup", // setup | collect | roundIntro | question | final
       title: "Pub Quiz",
+      mode: "auto", // "auto" = 6 random topics | "mixed" = 5 topics + player round
       players: [], // { id, name, score }
       rounds: [], // built once the quiz starts
       cursor: { round: 0, question: 0, collectIdx: 0 },
@@ -63,19 +66,29 @@
     return Math.random().toString(36).slice(2, 10);
   }
 
-  function buildRounds(players) {
-    const rounds = GENERAL_ROUNDS.map((r) => ({
+  function buildRounds(mode) {
+    const topics = shuffle(GENERAL_ROUNDS);
+    const topicCount = mode === "mixed" ? TOTAL_ROUNDS - 1 : TOTAL_ROUNDS;
+    const picked = topics.slice(0, topicCount);
+
+    const rounds = picked.map((r) => ({
       title: r.title,
       description: r.description,
       kind: "general",
-      questions: r.questions.map((q) => ({ ...q, authorId: null })),
+      questions: shuffle(r.questions)
+        .slice(0, QUESTIONS_PER_ROUND)
+        .map((q) => ({ ...q, authorId: null })),
     }));
-    rounds.push({
-      title: "Player Round",
-      description: "Each player contributed a question. You can't score on your own.",
-      kind: "player",
-      questions: [], // filled during collection
-    });
+
+    if (mode === "mixed") {
+      rounds.push({
+        title: "Player Round",
+        description:
+          "Each player contributed a question. You can't score on your own.",
+        kind: "player",
+        questions: [], // filled during collection
+      });
+    }
     return rounds;
   }
 
@@ -136,6 +149,17 @@
       state.title = titleInput.value.trim() || "Pub Quiz";
       titleEl.textContent = state.title;
       save();
+    });
+
+    const modeRadios = app.querySelectorAll('input[name="mode"]');
+    modeRadios.forEach((r) => {
+      r.checked = r.value === state.mode;
+      r.addEventListener("change", () => {
+        if (r.checked) {
+          state.mode = r.value;
+          save();
+        }
+      });
     });
 
     function isInQuiz(name) {
@@ -231,8 +255,9 @@
 
     startBtn.addEventListener("click", () => {
       if (state.players.length < 2) return;
-      state.rounds = buildRounds(state.players);
-      state.phase = "collect";
+      state.rounds = buildRounds(state.mode);
+      const hasPlayerRound = state.rounds.some((r) => r.kind === "player");
+      state.phase = hasPlayerRound ? "collect" : "roundIntro";
       state.cursor = { round: 0, question: 0, collectIdx: 0 };
       save();
       render();
@@ -246,7 +271,7 @@
   function renderCollect() {
     instantiateTemplate("tpl-collect");
 
-    const playerRound = state.rounds[PLAYER_ROUND_INDEX];
+    const playerRound = state.rounds.find((r) => r.kind === "player");
     const idx = state.cursor.collectIdx;
     const player = state.players[idx];
 
