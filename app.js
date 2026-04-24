@@ -104,30 +104,15 @@
       // to any topic if we've somehow used them all.
       const passTopic = topics[generalCount] || pick(GENERAL_ROUNDS);
       const playerOrder = shuffle(s.players);
-      // Each player answers a "set" of questions before passing the phone.
-      // Aim for 3 per player but shrink if the topic bank can't cover it.
-      const setSize = Math.max(
-        1,
-        Math.min(3, Math.floor(passTopic.questions.length / playerOrder.length))
-      );
-      const totalQs = setSize * playerOrder.length;
-      const pickedQs = shuffle(passTopic.questions).slice(0, totalQs);
-      const passQuestions = [];
-      let qi = 0;
-      playerOrder.forEach((player, playerIdx) => {
-        for (let i = 0; i < setSize; i++) {
-          passQuestions.push({
-            ...pickedQs[qi++],
-            assignedTo: player.id,
-            setIndex: playerIdx, // which player's set
-            setPos: i,           // 0-based position within the set
-            setSize,
-          });
-        }
-      });
+      const pickedQs = shuffle(passTopic.questions).slice(0, playerOrder.length);
+      const passQuestions = pickedQs.map((q, i) => ({
+        ...q,
+        assignedTo: playerOrder[i].id,
+        playerIndex: i,
+      }));
       rounds.push({
         title: `Pass the Phone — ${passTopic.title}`,
-        description: `Each player answers ${setSize} question${setSize === 1 ? "" : "s"} from "${passTopic.title}" before passing the phone.`,
+        description: `Each player answers one question from "${passTopic.title}". Hand the phone to the next player after every question.`,
         kind: "pass",
         topic: passTopic.title,
         questions: passQuestions,
@@ -333,20 +318,16 @@
     const round = state.rounds[state.cursor.round];
     const q = round.questions[state.cursor.question];
     const player = state.players.find((p) => p.id === q.assignedTo);
-    const totalSets = state.players.length;
-    const setNumber = (q.setIndex ?? 0) + 1;
-    const setSize = q.setSize ?? 1;
+    const total = state.players.length;
+    const number = (q.playerIndex ?? state.cursor.question) + 1;
 
     document.getElementById("pass-player").textContent = player ? player.name : "?";
-    document.getElementById("pass-progress").textContent =
-      `Set ${setNumber} of ${totalSets} · ${setSize} question${setSize === 1 ? "" : "s"}`;
+    document.getElementById("pass-progress").textContent = `Player ${number} of ${total}`;
 
     const hintEl = document.getElementById("pass-hint");
     if (hintEl) {
       hintEl.textContent =
-        setSize === 1
-          ? "When you're holding the phone, tap the button. The question is just for you."
-          : `When you're holding the phone, tap the button. You'll get ${setSize} questions in a row, then pass it on.`;
+        "When you're holding the phone, tap the button. The question is just for you — tap an option to lock in your answer.";
     }
 
     document.getElementById("pass-ready").addEventListener("click", () => {
@@ -373,12 +354,7 @@
     const authorEl = document.getElementById("q-author");
     if (round.kind === "pass") {
       const player = state.players.find((p) => p.id === q.assignedTo);
-      const setSize = q.setSize ?? 1;
-      const setPos = (q.setPos ?? 0) + 1;
-      const positionLabel = setSize > 1 ? ` — Q${setPos}/${setSize}` : "";
-      authorEl.textContent = player
-        ? `For ${player.name}${positionLabel} — tap your answer`
-        : "";
+      authorEl.textContent = player ? `For ${player.name} — tap your answer` : "";
       authorEl.classList.remove("hidden");
     }
 
