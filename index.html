@@ -24,13 +24,16 @@
   <template id="tpl-setup">
     <section class="card">
       <h2>Setup</h2>
-      <label class="field">
-        <span>Quiz title</span>
+      <div class="field">
+        <label for="quiz-title"><span>Quiz title</span></label>
         <div class="title-row">
           <input type="text" id="quiz-title" maxlength="60" placeholder="Friday Night Pub Quiz" />
-          <button type="button" id="title-random" class="ghost icon" title="Surprise me">✨</button>
+          <button type="button" id="title-random" class="title-random" title="Generate a fantasy name">
+            <span aria-hidden="true">✨</span>
+            <span class="label-text">Surprise me</span>
+          </button>
         </div>
-      </label>
+      </div>
 
       <div class="field">
         <span>Players</span>

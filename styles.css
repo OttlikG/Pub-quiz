@@ -56,6 +56,12 @@ body {
   font-size: 1.5rem;
   letter-spacing: 0.02em;
   color: var(--accent-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 0.5rem;
 }
 
 #app { grid-area: main; }
@@ -80,7 +86,8 @@ body {
   display: block;
   margin: 1rem 0;
 }
-.field > span {
+.field > span,
+.field > label > span {
   display: block;
   font-size: 0.85rem;
   color: var(--muted);
@@ -249,12 +256,37 @@ button.ghost {
   display: flex;
   gap: 0.5rem;
   align-items: stretch;
+  flex-wrap: wrap;
 }
-.title-row input { flex: 1; }
-button.icon {
-  padding: 0 0.7rem;
-  font-size: 1.15rem;
-  line-height: 1;
+.title-row input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+button.title-random {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: var(--accent-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+button.title-random:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.25);
+}
+button.title-random span[aria-hidden="true"] { font-size: 1.1rem; }
+
+@media (max-width: 420px) {
+  .title-row { flex-wrap: nowrap; }
+  button.title-random {
+    padding: 0 0.7rem;
+  }
+  button.title-random .label-text { display: none; }
 }
 
 .options {
