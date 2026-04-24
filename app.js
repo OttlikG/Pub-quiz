@@ -1,5 +1,5 @@
 (() => {
-  const STORAGE_KEY = "pub-quiz-state-v4";
+  const STORAGE_KEY = "pub-quiz-state-v5";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
   const QUESTIONS_PER_ROUND = 5;
   const TOTAL_ROUNDS = 6;
@@ -38,7 +38,6 @@
     return {
       phase: "setup", // setup | roundIntro | passHandoff | question | final
       title: "Pub Quiz",
-      includePassRound: false,
       players: [], // { id, name, score }
       rounds: [], // built once the quiz starts
       cursor: { round: 0, question: 0 },
@@ -88,8 +87,7 @@
   }
 
   function buildRounds(s) {
-    const specials = s.includePassRound ? 1 : 0;
-    const generalCount = TOTAL_ROUNDS - specials;
+    const generalCount = TOTAL_ROUNDS - 1; // always reserve one slot for the pass round
 
     const topics = shuffle(GENERAL_ROUNDS);
     const generalTopics = topics.slice(0, generalCount);
@@ -101,7 +99,7 @@
       questions: shuffle(r.questions).slice(0, QUESTIONS_PER_ROUND).map((q) => ({ ...q })),
     }));
 
-    if (s.includePassRound) {
+    {
       // Pick a topic that wasn't used by the general rounds, falling back
       // to any topic if we've somehow used them all.
       const passTopic = topics[generalCount] || pick(GENERAL_ROUNDS);
@@ -204,13 +202,6 @@
       titleInput.value = generated;
       state.title = generated;
       titleEl.textContent = generated;
-      save();
-    });
-
-    const passCheckbox = document.getElementById("opt-pass");
-    passCheckbox.checked = !!state.includePassRound;
-    passCheckbox.addEventListener("change", () => {
-      state.includePassRound = passCheckbox.checked;
       save();
     });
 
