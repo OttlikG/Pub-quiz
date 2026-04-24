@@ -365,11 +365,40 @@ button.option.picked {
   letter-spacing: 0.06em;
 }
 
-.player-grid {
+.player-grid,
+.picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+.picker-grid { margin-top: 1.25rem; }
+
+button.picker-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+}
+button.picker-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--accent);
+  color: var(--accent-2);
+}
+button.picker-btn .badge {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .player-grid button {
