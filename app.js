@@ -1,8 +1,30 @@
 (() => {
-  const STORAGE_KEY = "pub-quiz-state-v2";
+  const STORAGE_KEY = "pub-quiz-state-v3";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
   const QUESTIONS_PER_ROUND = 5;
   const TOTAL_ROUNDS = 6;
+
+  const TITLE_PARTS = {
+    prefix: ["The", "The Most", "The Glorious", "The Legendary", "Sir Hopsalot's", "Lady Lager's", "Captain Quaff's", "Council of"],
+    adjective: ["Mighty", "Sneaky", "Fluffy", "Drunken", "Glorious", "Dastardly", "Wobbly", "Mysterious", "Roaring", "Velvet", "Brave", "Ancient", "Forgotten", "Curious", "Notorious", "Splendid", "Bewildered", "Soggy"],
+    noun: ["Tankards", "Pints", "Brains", "Wizards", "Owls", "Knights", "Goblets", "Pirates", "Bards", "Scribes", "Foxes", "Dragons", "Sleuths", "Crusaders", "Hedgehogs", "Pickles"],
+    topic: ["Trivia", "Knowledge", "Mischief", "Curiosity", "Brain Cells", "Brews", "Wisdom", "Folly", "Hops", "Hearsay"],
+    suffix: ["Showdown", "Saga", "Brawl", "Bash", "Olympics", "Cup", "Tournament", "Reckoning", "Jamboree", "Inquisition", "Gauntlet"],
+  };
+
+  function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function randomTitle() {
+    const patterns = [
+      () => `${pick(TITLE_PARTS.prefix)} ${pick(TITLE_PARTS.adjective)} ${pick(TITLE_PARTS.noun)} of ${pick(TITLE_PARTS.topic)}`,
+      () => `${pick(TITLE_PARTS.adjective)} ${pick(TITLE_PARTS.noun)}' ${pick(TITLE_PARTS.suffix)}`,
+      () => `${pick(TITLE_PARTS.prefix)} ${pick(TITLE_PARTS.noun)} ${pick(TITLE_PARTS.suffix)}`,
+      () => `${pick(TITLE_PARTS.adjective)} ${pick(TITLE_PARTS.topic)} ${pick(TITLE_PARTS.suffix)}`,
+    ];
+    return pick(patterns)();
+  }
 
   const app = document.getElementById("app");
   const titleEl = document.getElementById("title");
@@ -11,13 +33,13 @@
   const resetBtn = document.getElementById("reset-btn");
 
   const state = load() || newState();
-  if (!state.mode) state.mode = "auto";
 
   function newState() {
     return {
-      phase: "setup", // setup | collect | roundIntro | question | final
+      phase: "setup", // setup | collect | roundIntro | passHandoff | question | final
       title: "Pub Quiz",
-      mode: "auto", // "auto" = 6 random topics | "mixed" = 5 topics + player round
+      includePlayerRound: false,
+      includePassRound: false,
       players: [], // { id, name, score }
       rounds: [], // built once the quiz starts
       cursor: { round: 0, question: 0, collectIdx: 0 },
@@ -66,12 +88,14 @@
     return Math.random().toString(36).slice(2, 10);
   }
 
-  function buildRounds(mode) {
-    const topics = shuffle(GENERAL_ROUNDS);
-    const topicCount = mode === "mixed" ? TOTAL_ROUNDS - 1 : TOTAL_ROUNDS;
-    const picked = topics.slice(0, topicCount);
+  function buildRounds(s) {
+    const specials = (s.includePassRound ? 1 : 0) + (s.includePlayerRound ? 1 : 0);
+    const generalCount = TOTAL_ROUNDS - specials;
 
-    const rounds = picked.map((r) => ({
+    const topics = shuffle(GENERAL_ROUNDS);
+    const generalTopics = topics.slice(0, generalCount);
+
+    const rounds = generalTopics.map((r) => ({
       title: r.title,
       description: r.description,
       kind: "general",
@@ -80,7 +104,26 @@
         .map((q) => ({ ...q, authorId: null })),
     }));
 
-    if (mode === "mixed") {
+    if (s.includePassRound) {
+      // Pick a topic that wasn't used by the general rounds, falling back
+      // to any topic if we've somehow used them all.
+      const passTopic = topics[generalCount] || pick(GENERAL_ROUNDS);
+      const playerOrder = shuffle(s.players);
+      const picked = shuffle(passTopic.questions).slice(0, playerOrder.length);
+      rounds.push({
+        title: `Pass the Phone — ${passTopic.title}`,
+        description:
+          "Each player gets one question on the same topic. Pass the phone around and tap your own answer.",
+        kind: "pass",
+        topic: passTopic.title,
+        questions: picked.map((q, i) => ({
+          ...q,
+          assignedTo: playerOrder[i].id,
+        })),
+      });
+    }
+
+    if (s.includePlayerRound) {
       rounds.push({
         title: "Player Round",
         description:
@@ -105,6 +148,7 @@
       case "setup": return renderSetup();
       case "collect": return renderCollect();
       case "roundIntro": return renderRoundIntro();
+      case "passHandoff": return renderPassHandoff();
       case "question": return renderQuestion();
       case "final": return renderFinal();
     }
@@ -151,15 +195,26 @@
       save();
     });
 
-    const modeRadios = app.querySelectorAll('input[name="mode"]');
-    modeRadios.forEach((r) => {
-      r.checked = r.value === state.mode;
-      r.addEventListener("change", () => {
-        if (r.checked) {
-          state.mode = r.value;
-          save();
-        }
-      });
+    const titleRandomBtn = document.getElementById("title-random");
+    titleRandomBtn.addEventListener("click", () => {
+      const generated = randomTitle();
+      titleInput.value = generated;
+      state.title = generated;
+      titleEl.textContent = generated;
+      save();
+    });
+
+    const passCheckbox = document.getElementById("opt-pass");
+    const playerCheckbox = document.getElementById("opt-player");
+    passCheckbox.checked = !!state.includePassRound;
+    playerCheckbox.checked = !!state.includePlayerRound;
+    passCheckbox.addEventListener("change", () => {
+      state.includePassRound = passCheckbox.checked;
+      save();
+    });
+    playerCheckbox.addEventListener("change", () => {
+      state.includePlayerRound = playerCheckbox.checked;
+      save();
     });
 
     function isInQuiz(name) {
@@ -255,7 +310,7 @@
 
     startBtn.addEventListener("click", () => {
       if (state.players.length < 2) return;
-      state.rounds = buildRounds(state.mode);
+      state.rounds = buildRounds(state);
       const hasPlayerRound = state.rounds.some((r) => r.kind === "player");
       state.phase = hasPlayerRound ? "collect" : "roundIntro";
       state.cursor = { round: 0, question: 0, collectIdx: 0 };
@@ -329,9 +384,28 @@
     document.getElementById("intro-desc").textContent = round.description;
 
     document.getElementById("intro-start").addEventListener("click", () => {
-      state.phase = "question";
       state.cursor.question = 0;
       state.scoredThisQuestion = {};
+      state.phase = round.kind === "pass" ? "passHandoff" : "question";
+      save();
+      render();
+    });
+  }
+
+  // Pass-the-phone handoff -----------
+
+  function renderPassHandoff() {
+    instantiateTemplate("tpl-pass-handoff");
+    const round = state.rounds[state.cursor.round];
+    const q = round.questions[state.cursor.question];
+    const player = state.players.find((p) => p.id === q.assignedTo);
+
+    document.getElementById("pass-player").textContent = player ? player.name : "?";
+    document.getElementById("pass-progress").textContent =
+      `${state.cursor.question + 1} of ${round.questions.length}`;
+
+    document.getElementById("pass-ready").addEventListener("click", () => {
+      state.phase = "question";
       save();
       render();
     });
@@ -351,10 +425,14 @@
     document.getElementById("q-category").textContent = round.title;
     document.getElementById("q-text").textContent = q.q;
 
+    const authorEl = document.getElementById("q-author");
     if (round.kind === "player") {
       const author = state.players.find((p) => p.id === q.authorId);
-      const authorEl = document.getElementById("q-author");
       authorEl.textContent = author ? `Question by ${author.name}` : "";
+      authorEl.classList.remove("hidden");
+    } else if (round.kind === "pass") {
+      const player = state.players.find((p) => p.id === q.assignedTo);
+      authorEl.textContent = player ? `For ${player.name} — tap your answer` : "";
       authorEl.classList.remove("hidden");
     }
 
@@ -387,12 +465,44 @@
       optionsEl.appendChild(btn);
     });
 
-    function highlightOptions() {
+    function highlightOptions(pickedText) {
       optionsEl.querySelectorAll("button.option").forEach((btn) => {
         if (btn.dataset.option === q.a) btn.classList.add("correct");
         else btn.classList.add("wrong");
+        if (pickedText && btn.dataset.option === pickedText) btn.classList.add("picked");
         btn.disabled = true;
       });
+    }
+
+    if (round.kind === "pass") {
+      // The assigned player taps their own answer; scoring is automatic.
+      scoring.classList.add("hidden");
+      revealBtn.classList.add("hidden");
+
+      if (q._answered) {
+        highlightOptions(q._pickedOption);
+        answerBox.classList.remove("hidden");
+        nextBtn.classList.remove("hidden");
+      } else {
+        optionsEl.querySelectorAll("button.option").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (q._answered) return;
+            const picked = btn.dataset.option;
+            const player = state.players.find((p) => p.id === q.assignedTo);
+            if (player && picked === q.a) player.score += 1;
+            q._answered = true;
+            q._pickedOption = picked;
+            highlightOptions(picked);
+            answerBox.classList.remove("hidden");
+            nextBtn.classList.remove("hidden");
+            renderLeaderboard();
+            save();
+          });
+        });
+      }
+
+      nextBtn.addEventListener("click", () => advanceFromQuestion(round));
+      return;
     }
 
     function renderPlayerButtons() {
@@ -438,21 +548,23 @@
       renderPlayerButtons();
     });
 
-    nextBtn.addEventListener("click", () => {
-      state.scoredThisQuestion = {};
-      if (state.cursor.question + 1 < round.questions.length) {
-        state.cursor.question += 1;
-        state.phase = "question";
-      } else if (state.cursor.round + 1 < state.rounds.length) {
-        state.cursor.round += 1;
-        state.cursor.question = 0;
-        state.phase = "roundIntro";
-      } else {
-        state.phase = "final";
-      }
-      save();
-      render();
-    });
+    nextBtn.addEventListener("click", () => advanceFromQuestion(round));
+  }
+
+  function advanceFromQuestion(round) {
+    state.scoredThisQuestion = {};
+    if (state.cursor.question + 1 < round.questions.length) {
+      state.cursor.question += 1;
+      state.phase = round.kind === "pass" ? "passHandoff" : "question";
+    } else if (state.cursor.round + 1 < state.rounds.length) {
+      state.cursor.round += 1;
+      state.cursor.question = 0;
+      state.phase = "roundIntro";
+    } else {
+      state.phase = "final";
+    }
+    save();
+    render();
   }
 
   // Final ---------------

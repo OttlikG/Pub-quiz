@@ -26,7 +26,10 @@
       <h2>Setup</h2>
       <label class="field">
         <span>Quiz title</span>
-        <input type="text" id="quiz-title" maxlength="60" placeholder="Friday Night Pub Quiz" />
+        <div class="title-row">
+          <input type="text" id="quiz-title" maxlength="60" placeholder="Friday Night Pub Quiz" />
+          <button type="button" id="title-random" class="ghost icon" title="Surprise me">✨</button>
+        </div>
       </label>
 
       <div class="field">
@@ -45,19 +48,21 @@
       </div>
 
       <fieldset class="field mode-field">
-        <legend>Question source</legend>
+        <legend>Special rounds</legend>
+        <p class="hint">By default the quiz plays 6 random topics. Tick a box to swap one
+          topic round for a special one.</p>
         <label class="mode-option">
-          <input type="radio" name="mode" value="auto" />
+          <input type="checkbox" id="opt-pass" />
           <span>
-            <strong>6 auto-picked topics</strong>
-            <small>5 random questions per round, shuffled fresh each quiz.</small>
+            <strong>Pass-the-phone round</strong>
+            <small>One topic; each player answers a different question on their own.</small>
           </span>
         </label>
         <label class="mode-option">
-          <input type="radio" name="mode" value="mixed" />
+          <input type="checkbox" id="opt-player" />
           <span>
-            <strong>5 auto topics + player Round 6</strong>
-            <small>Each player types a question; can't score on their own.</small>
+            <strong>Player-contributed round</strong>
+            <small>Each player types a question and 3 wrong options up front.</small>
           </span>
         </label>
       </fieldset>
@@ -69,7 +74,7 @@
 
   <template id="tpl-collect">
     <section class="card">
-      <h2>Round 6 &mdash; collect player questions</h2>
+      <h2>Player round &mdash; collect questions</h2>
       <p class="hint">
         Hand the device to <strong id="collect-player"></strong>. They type a question,
         the correct answer, and three plausible wrong answers, then press
@@ -93,6 +98,15 @@
         <button id="collect-next" class="primary">Save &amp; pass</button>
         <span id="collect-progress" class="muted"></span>
       </div>
+    </section>
+  </template>
+
+  <template id="tpl-pass-handoff">
+    <section class="card center">
+      <p class="muted">Pass-the-phone round &middot; <span id="pass-progress"></span></p>
+      <h2>Hand the phone to <span id="pass-player"></span></h2>
+      <p class="hint">When you're holding the phone and ready, tap the button. The question is just for you &mdash; tap an option to lock in your answer.</p>
+      <button id="pass-ready" class="primary">I'm ready</button>
     </section>
   </template>
 

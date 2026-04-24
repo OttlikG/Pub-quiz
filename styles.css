@@ -245,6 +245,18 @@ button.ghost {
   margin-top: 0.4rem;
 }
 
+.title-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.title-row input { flex: 1; }
+button.icon {
+  padding: 0 0.7rem;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
 .options {
   display: grid;
   grid-template-columns: 1fr;
@@ -297,6 +309,11 @@ button.option.wrong {
   opacity: 0.55;
   text-decoration: line-through;
   text-decoration-thickness: 1px;
+}
+button.option.picked {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  opacity: 1;
 }
 
 .answer {
