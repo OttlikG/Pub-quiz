@@ -1,5 +1,5 @@
 (() => {
-  const STORAGE_KEY = "pub-quiz-state-v3";
+  const STORAGE_KEY = "pub-quiz-state-v4";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
   const QUESTIONS_PER_ROUND = 5;
   const TOTAL_ROUNDS = 6;
@@ -36,13 +36,12 @@
 
   function newState() {
     return {
-      phase: "setup", // setup | collect | roundIntro | passHandoff | question | final
+      phase: "setup", // setup | roundIntro | passHandoff | question | final
       title: "Pub Quiz",
-      includePlayerRound: false,
       includePassRound: false,
       players: [], // { id, name, score }
       rounds: [], // built once the quiz starts
-      cursor: { round: 0, question: 0, collectIdx: 0 },
+      cursor: { round: 0, question: 0 },
       scoredThisQuestion: {}, // playerId -> bool, reset per question
     };
   }
@@ -89,7 +88,7 @@
   }
 
   function buildRounds(s) {
-    const specials = (s.includePassRound ? 1 : 0) + (s.includePlayerRound ? 1 : 0);
+    const specials = s.includePassRound ? 1 : 0;
     const generalCount = TOTAL_ROUNDS - specials;
 
     const topics = shuffle(GENERAL_ROUNDS);
@@ -99,9 +98,7 @@
       title: r.title,
       description: r.description,
       kind: "general",
-      questions: shuffle(r.questions)
-        .slice(0, QUESTIONS_PER_ROUND)
-        .map((q) => ({ ...q, authorId: null })),
+      questions: shuffle(r.questions).slice(0, QUESTIONS_PER_ROUND).map((q) => ({ ...q })),
     }));
 
     if (s.includePassRound) {
@@ -109,29 +106,36 @@
       // to any topic if we've somehow used them all.
       const passTopic = topics[generalCount] || pick(GENERAL_ROUNDS);
       const playerOrder = shuffle(s.players);
-      const picked = shuffle(passTopic.questions).slice(0, playerOrder.length);
+      // Each player answers a "set" of questions before passing the phone.
+      // Aim for 3 per player but shrink if the topic bank can't cover it.
+      const setSize = Math.max(
+        1,
+        Math.min(3, Math.floor(passTopic.questions.length / playerOrder.length))
+      );
+      const totalQs = setSize * playerOrder.length;
+      const pickedQs = shuffle(passTopic.questions).slice(0, totalQs);
+      const passQuestions = [];
+      let qi = 0;
+      playerOrder.forEach((player, playerIdx) => {
+        for (let i = 0; i < setSize; i++) {
+          passQuestions.push({
+            ...pickedQs[qi++],
+            assignedTo: player.id,
+            setIndex: playerIdx, // which player's set
+            setPos: i,           // 0-based position within the set
+            setSize,
+          });
+        }
+      });
       rounds.push({
         title: `Pass the Phone — ${passTopic.title}`,
-        description:
-          "Each player gets one question on the same topic. Pass the phone around and tap your own answer.",
+        description: `Each player answers ${setSize} question${setSize === 1 ? "" : "s"} from "${passTopic.title}" before passing the phone.`,
         kind: "pass",
         topic: passTopic.title,
-        questions: picked.map((q, i) => ({
-          ...q,
-          assignedTo: playerOrder[i].id,
-        })),
+        questions: passQuestions,
       });
     }
 
-    if (s.includePlayerRound) {
-      rounds.push({
-        title: "Player Round",
-        description:
-          "Each player contributed a question. You can't score on your own.",
-        kind: "player",
-        questions: [], // filled during collection
-      });
-    }
     return rounds;
   }
 
@@ -146,7 +150,6 @@
 
     switch (state.phase) {
       case "setup": return renderSetup();
-      case "collect": return renderCollect();
       case "roundIntro": return renderRoundIntro();
       case "passHandoff": return renderPassHandoff();
       case "question": return renderQuestion();
@@ -155,7 +158,7 @@
   }
 
   function renderLeaderboard() {
-    if (state.phase === "setup" || state.phase === "collect") {
+    if (state.phase === "setup") {
       leaderboardEl.classList.add("hidden");
       return;
     }
@@ -205,15 +208,9 @@
     });
 
     const passCheckbox = document.getElementById("opt-pass");
-    const playerCheckbox = document.getElementById("opt-player");
     passCheckbox.checked = !!state.includePassRound;
-    playerCheckbox.checked = !!state.includePlayerRound;
     passCheckbox.addEventListener("change", () => {
       state.includePassRound = passCheckbox.checked;
-      save();
-    });
-    playerCheckbox.addEventListener("change", () => {
-      state.includePlayerRound = playerCheckbox.checked;
       save();
     });
 
@@ -311,67 +308,13 @@
     startBtn.addEventListener("click", () => {
       if (state.players.length < 2) return;
       state.rounds = buildRounds(state);
-      const hasPlayerRound = state.rounds.some((r) => r.kind === "player");
-      state.phase = hasPlayerRound ? "collect" : "roundIntro";
-      state.cursor = { round: 0, question: 0, collectIdx: 0 };
+      state.phase = "roundIntro";
+      state.cursor = { round: 0, question: 0 };
       save();
       render();
     });
 
     redrawAll();
-  }
-
-  // Collect ------------- (build Round 6)
-
-  function renderCollect() {
-    instantiateTemplate("tpl-collect");
-
-    const playerRound = state.rounds.find((r) => r.kind === "player");
-    const idx = state.cursor.collectIdx;
-    const player = state.players[idx];
-
-    document.getElementById("collect-player").textContent = player.name;
-    document.getElementById("collect-progress").textContent =
-      `${idx + 1} of ${state.players.length}`;
-
-    const qInput = document.getElementById("collect-question");
-    const aInput = document.getElementById("collect-answer");
-    const wrongInputs = Array.from(app.querySelectorAll(".collect-wrong"));
-    const nextBtn = document.getElementById("collect-next");
-
-    qInput.value = "";
-    aInput.value = "";
-    wrongInputs.forEach((el) => (el.value = ""));
-    qInput.focus();
-
-    nextBtn.addEventListener("click", () => {
-      const q = qInput.value.trim();
-      const a = aInput.value.trim();
-      const wrong = wrongInputs.map((el) => el.value.trim());
-      if (!q || !a || wrong.some((w) => !w)) {
-        if (!q || !a) qInput.focus();
-        else wrongInputs.find((el) => !el.value.trim())?.focus();
-        return;
-      }
-      const all = [a, ...wrong].map((s) => s.toLowerCase());
-      if (new Set(all).size !== all.length) {
-        alert("Answers must all be different from each other.");
-        return;
-      }
-      playerRound.questions.push({ q, a, wrong, authorId: player.id });
-      state.cursor.collectIdx += 1;
-
-      if (state.cursor.collectIdx >= state.players.length) {
-        // Shuffle the player round so a player doesn't always get asked their own
-        // question first and the order feels fair.
-        playerRound.questions = shuffle(playerRound.questions);
-        state.phase = "roundIntro";
-        state.cursor.round = 0;
-        state.cursor.question = 0;
-      }
-      save();
-      render();
-    });
   }
 
   // Round intro -----------
@@ -399,10 +342,21 @@
     const round = state.rounds[state.cursor.round];
     const q = round.questions[state.cursor.question];
     const player = state.players.find((p) => p.id === q.assignedTo);
+    const totalSets = state.players.length;
+    const setNumber = (q.setIndex ?? 0) + 1;
+    const setSize = q.setSize ?? 1;
 
     document.getElementById("pass-player").textContent = player ? player.name : "?";
     document.getElementById("pass-progress").textContent =
-      `${state.cursor.question + 1} of ${round.questions.length}`;
+      `Set ${setNumber} of ${totalSets} · ${setSize} question${setSize === 1 ? "" : "s"}`;
+
+    const hintEl = document.getElementById("pass-hint");
+    if (hintEl) {
+      hintEl.textContent =
+        setSize === 1
+          ? "When you're holding the phone, tap the button. The question is just for you."
+          : `When you're holding the phone, tap the button. You'll get ${setSize} questions in a row, then pass it on.`;
+    }
 
     document.getElementById("pass-ready").addEventListener("click", () => {
       state.phase = "question";
@@ -426,13 +380,14 @@
     document.getElementById("q-text").textContent = q.q;
 
     const authorEl = document.getElementById("q-author");
-    if (round.kind === "player") {
-      const author = state.players.find((p) => p.id === q.authorId);
-      authorEl.textContent = author ? `Question by ${author.name}` : "";
-      authorEl.classList.remove("hidden");
-    } else if (round.kind === "pass") {
+    if (round.kind === "pass") {
       const player = state.players.find((p) => p.id === q.assignedTo);
-      authorEl.textContent = player ? `For ${player.name} — tap your answer` : "";
+      const setSize = q.setSize ?? 1;
+      const setPos = (q.setPos ?? 0) + 1;
+      const positionLabel = setSize > 1 ? ` — Q${setPos}/${setSize}` : "";
+      authorEl.textContent = player
+        ? `For ${player.name}${positionLabel} — tap your answer`
+        : "";
       authorEl.classList.remove("hidden");
     }
 
@@ -511,11 +466,6 @@
         const btn = document.createElement("button");
         btn.dataset.id = p.id;
         btn.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="badge">${p.score}</span>`;
-        const disabled = round.kind === "player" && p.id === q.authorId;
-        if (disabled) {
-          btn.disabled = true;
-          btn.title = "Author can't score on their own question";
-        }
         if (state.scoredThisQuestion[p.id]) btn.classList.add("scored");
         btn.addEventListener("click", () => toggleScore(p.id, btn));
         playersGrid.appendChild(btn);
@@ -554,8 +504,15 @@
   function advanceFromQuestion(round) {
     state.scoredThisQuestion = {};
     if (state.cursor.question + 1 < round.questions.length) {
+      const prevQ = round.questions[state.cursor.question];
       state.cursor.question += 1;
-      state.phase = round.kind === "pass" ? "passHandoff" : "question";
+      if (round.kind === "pass") {
+        const nextQ = round.questions[state.cursor.question];
+        const samePlayer = nextQ.assignedTo === prevQ.assignedTo;
+        state.phase = samePlayer ? "question" : "passHandoff";
+      } else {
+        state.phase = "question";
+      }
     } else if (state.cursor.round + 1 < state.rounds.length) {
       state.cursor.round += 1;
       state.cursor.question = 0;

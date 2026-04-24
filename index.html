@@ -28,9 +28,8 @@
         <label for="quiz-title"><span>Quiz title</span></label>
         <div class="title-row">
           <input type="text" id="quiz-title" maxlength="60" placeholder="Friday Night Pub Quiz" />
-          <button type="button" id="title-random" class="title-random" title="Generate a fantasy name">
+          <button type="button" id="title-random" class="title-random" title="Generate a fantasy name" aria-label="Generate a fantasy name">
             <span aria-hidden="true">✨</span>
-            <span class="label-text">Surprise me</span>
           </button>
         </div>
       </div>
@@ -52,20 +51,13 @@
 
       <fieldset class="field mode-field">
         <legend>Special rounds</legend>
-        <p class="hint">By default the quiz plays 6 random topics. Tick a box to swap one
-          topic round for a special one.</p>
+        <p class="hint">By default the quiz plays 6 random topics. Tick the box to swap
+          one topic round for a pass-the-phone round.</p>
         <label class="mode-option">
           <input type="checkbox" id="opt-pass" />
           <span>
             <strong>Pass-the-phone round</strong>
-            <small>One topic; each player answers a different question on their own.</small>
-          </span>
-        </label>
-        <label class="mode-option">
-          <input type="checkbox" id="opt-player" />
-          <span>
-            <strong>Player-contributed round</strong>
-            <small>Each player types a question and 3 wrong options up front.</small>
+            <small>One topic; each player answers a set of questions on their own, then hands the phone over.</small>
           </span>
         </label>
       </fieldset>
@@ -75,40 +67,11 @@
     </section>
   </template>
 
-  <template id="tpl-collect">
-    <section class="card">
-      <h2>Player round &mdash; collect questions</h2>
-      <p class="hint">
-        Hand the device to <strong id="collect-player"></strong>. They type a question,
-        the correct answer, and three plausible wrong answers, then press
-        <em>Save &amp; pass</em>. Others shouldn't peek.
-      </p>
-      <label class="field">
-        <span>Question</span>
-        <textarea id="collect-question" rows="3" maxlength="280" placeholder="e.g. Which element has the atomic number 79?"></textarea>
-      </label>
-      <label class="field">
-        <span>Correct answer</span>
-        <input type="text" id="collect-answer" maxlength="120" placeholder="e.g. Gold" />
-      </label>
-      <div class="field">
-        <span>Three wrong options</span>
-        <input type="text" class="collect-wrong" maxlength="120" placeholder="Wrong option 1" />
-        <input type="text" class="collect-wrong" maxlength="120" placeholder="Wrong option 2" />
-        <input type="text" class="collect-wrong" maxlength="120" placeholder="Wrong option 3" />
-      </div>
-      <div class="row">
-        <button id="collect-next" class="primary">Save &amp; pass</button>
-        <span id="collect-progress" class="muted"></span>
-      </div>
-    </section>
-  </template>
-
   <template id="tpl-pass-handoff">
     <section class="card center">
       <p class="muted">Pass-the-phone round &middot; <span id="pass-progress"></span></p>
       <h2>Hand the phone to <span id="pass-player"></span></h2>
-      <p class="hint">When you're holding the phone and ready, tap the button. The question is just for you &mdash; tap an option to lock in your answer.</p>
+      <p class="hint" id="pass-hint">When you're holding the phone and ready, tap the button.</p>
       <button id="pass-ready" class="primary">I'm ready</button>
     </section>
   </template>
@@ -139,7 +102,6 @@
       </div>
 
       <div id="q-scoring" class="hidden">
-        <p class="hint">Tap everyone who got it right (+1 each).</p>
         <div id="q-players" class="player-grid"></div>
       </div>
 
