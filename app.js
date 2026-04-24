@@ -104,7 +104,10 @@
 
   function render() {
     titleEl.textContent = state.title || "Pub Quiz";
-    document.title = state.title ? `${state.title} — Pub Quiz` : "Pub Quiz";
+    document.title =
+      state.title && state.title !== "Pub Quiz"
+        ? `${state.title} — Pub Quiz`
+        : "Pub Quiz — Pass-the-phone trivia for pub night";
 
     renderLeaderboard();
     app.innerHTML = "";
