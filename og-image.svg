@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="Pub Quiz — Pass-the-phone trivia for pub night">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="22%" r="85%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="55%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative scattered dots -->
+  <g fill="#fbbf24">
+    <circle cx="80"   cy="90"  r="4" opacity="0.45"/>
+    <circle cx="1110" cy="70"  r="6" opacity="0.35"/>
+    <circle cx="160"  cy="520" r="5" opacity="0.4"/>
+    <circle cx="1060" cy="555" r="4" opacity="0.4"/>
+    <circle cx="930"  cy="120" r="3" opacity="0.5"/>
+    <circle cx="200"  cy="380" r="3" opacity="0.4"/>
+    <circle cx="1130" cy="320" r="3" opacity="0.4"/>
+    <circle cx="60"   cy="290" r="4" opacity="0.3"/>
+  </g>
+
+  <!-- Beer mug, centered -->
+  <g transform="translate(390, 110)">
+    <!-- Glass body -->
+    <path d="M0 70 L0 285 Q0 325 45 325 L235 325 Q280 325 280 285 L280 70 Z"
+          fill="url(#amber)" stroke="#f59e0b" stroke-width="6" stroke-linejoin="round"/>
+
+    <!-- Handle -->
+    <path d="M280 110 L335 110 Q380 110 380 160 L380 245 Q380 295 335 295 L280 295"
+          fill="none" stroke="#f59e0b" stroke-width="14"
+          stroke-linejoin="round" stroke-linecap="round"/>
+
+    <!-- Foam blobs sitting on top of the rim -->
+    <ellipse cx="45"  cy="70" rx="55" ry="38" fill="#f3f4f6"/>
+    <ellipse cx="140" cy="48" rx="60" ry="42" fill="#f9fafb"/>
+    <ellipse cx="235" cy="70" rx="55" ry="38" fill="#f3f4f6"/>
+
+    <!-- Big Q on the glass -->
+    <text x="140" y="248"
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif"
+          font-size="200" font-weight="900" text-anchor="middle" fill="#0f172a">Q</text>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="500"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif"
+        font-size="78" font-weight="900" text-anchor="middle" fill="#fbbf24" letter-spacing="3">PUB QUIZ</text>
+
+  <!-- Tagline -->
+  <text x="600" y="558"
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif"
+        font-size="28" font-weight="500" text-anchor="middle" fill="#cbd5e1">Pass-the-phone trivia for pub night</text>
+</svg>
