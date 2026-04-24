@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pub Quiz</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="title">Pub Quiz</h1>
+    <button id="reset-btn" class="ghost" title="Start over">Reset</button>
+  </header>
+
+  <main id="app">
+    <!-- screens are swapped in by app.js -->
+  </main>
+
+  <aside id="leaderboard" class="hidden">
+    <h2>Leaderboard</h2>
+    <ol id="leaderboard-list"></ol>
+  </aside>
+
+  <template id="tpl-setup">
+    <section class="card">
+      <h2>Setup</h2>
+      <label class="field">
+        <span>Quiz title</span>
+        <input type="text" id="quiz-title" maxlength="60" placeholder="Friday Night Pub Quiz" />
+      </label>
+
+      <div class="field">
+        <span>Players</span>
+        <form id="player-form" class="inline">
+          <input type="text" id="player-name" maxlength="24" placeholder="Player name" required />
+          <button type="submit">Add</button>
+        </form>
+        <ul id="player-list" class="chips"></ul>
+      </div>
+
+      <p class="hint">Add at least 2 players. Round 6 will be built from questions the players contribute themselves.</p>
+      <button id="start-btn" class="primary" disabled>Start quiz</button>
+    </section>
+  </template>
+
+  <template id="tpl-collect">
+    <section class="card">
+      <h2>Round 6 &mdash; collect player questions</h2>
+      <p class="hint">
+        Hand the device to <strong id="collect-player"></strong>. They type a question and its answer,
+        then press <em>Save &amp; pass</em>. Others shouldn't peek.
+      </p>
+      <label class="field">
+        <span>Question</span>
+        <textarea id="collect-question" rows="3" maxlength="280" placeholder="e.g. Which element has the atomic number 79?"></textarea>
+      </label>
+      <label class="field">
+        <span>Answer</span>
+        <input type="text" id="collect-answer" maxlength="120" placeholder="e.g. Gold" />
+      </label>
+      <div class="row">
+        <button id="collect-next" class="primary">Save &amp; pass</button>
+        <span id="collect-progress" class="muted"></span>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-round-intro">
+    <section class="card center">
+      <p class="muted">Round <span id="intro-num"></span> of 6</p>
+      <h2 id="intro-title"></h2>
+      <p id="intro-desc" class="hint"></p>
+      <button id="intro-start" class="primary">Begin round</button>
+    </section>
+  </template>
+
+  <template id="tpl-question">
+    <section class="card">
+      <div class="row between">
+        <span class="muted">Round <span id="q-round"></span> &middot; Question <span id="q-num"></span>/<span id="q-total"></span></span>
+        <span class="muted" id="q-category"></span>
+      </div>
+      <h2 id="q-text"></h2>
+      <p id="q-author" class="muted hidden"></p>
+
+      <div id="q-answer" class="answer hidden">
+        <span class="label">Answer:</span>
+        <span id="q-answer-text"></span>
+      </div>
+
+      <div id="q-scoring" class="hidden">
+        <p class="hint">Tap everyone who got it right (+1 each).</p>
+        <div id="q-players" class="player-grid"></div>
+      </div>
+
+      <div class="row">
+        <button id="q-reveal" class="primary">Reveal answer</button>
+        <button id="q-next" class="primary hidden">Next</button>
+      </div>
+    </section>
+  </template>
+
+  <template id="tpl-final">
+    <section class="card center">
+      <h2>Final leaderboard</h2>
+      <p id="final-winner" class="winner"></p>
+      <ol id="final-list" class="final-list"></ol>
+      <button id="final-reset" class="primary">Start a new quiz</button>
+    </section>
+  </template>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
