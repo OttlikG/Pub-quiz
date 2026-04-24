@@ -1,5 +1,6 @@
 (() => {
   const STORAGE_KEY = "pub-quiz-state-v1";
+  const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
   const PLAYER_ROUND_INDEX = 5; // 0-based; round 6
 
   const app = document.getElementById("app");
@@ -31,6 +32,31 @@
     } catch {
       return null;
     }
+  }
+
+  function loadKnownPlayers() {
+    try {
+      const raw = localStorage.getItem(KNOWN_PLAYERS_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+  function saveKnownPlayers(arr) {
+    localStorage.setItem(KNOWN_PLAYERS_KEY, JSON.stringify(arr));
+  }
+  function rememberPlayer(name) {
+    const list = loadKnownPlayers();
+    if (!list.some((n) => n.toLowerCase() === name.toLowerCase())) {
+      list.push(name);
+      saveKnownPlayers(list);
+    }
+  }
+  function forgetPlayer(name) {
+    saveKnownPlayers(
+      loadKnownPlayers().filter((n) => n.toLowerCase() !== name.toLowerCase())
+    );
   }
 
   function uid() {
@@ -101,6 +127,8 @@
     const form = document.getElementById("player-form");
     const nameInput = document.getElementById("player-name");
     const list = document.getElementById("player-list");
+    const savedList = document.getElementById("saved-list");
+    const savedEmptyHint = document.getElementById("saved-empty-hint");
     const startBtn = document.getElementById("start-btn");
 
     titleInput.value = state.title === "Pub Quiz" ? "" : state.title;
@@ -109,6 +137,12 @@
       titleEl.textContent = state.title;
       save();
     });
+
+    function isInQuiz(name) {
+      return state.players.some(
+        (p) => p.name.toLowerCase() === name.toLowerCase()
+      );
+    }
 
     function redrawPlayers() {
       list.innerHTML = state.players
@@ -120,20 +154,42 @@
       startBtn.disabled = state.players.length < 2;
     }
 
+    function redrawSaved() {
+      const known = loadKnownPlayers();
+      savedEmptyHint.classList.toggle("hidden", known.length > 0);
+      savedList.innerHTML = known
+        .map((name) => {
+          const selected = isInQuiz(name);
+          return `<li class="${selected ? "selected" : ""}" data-name="${escapeHtml(name)}">
+            <button class="chip-toggle" data-toggle="${escapeHtml(name)}" aria-pressed="${selected}">
+              ${selected ? "✓ " : "+ "}${escapeHtml(name)}
+            </button>
+            <button class="chip-forget" data-forget="${escapeHtml(name)}" title="Forget ${escapeHtml(name)}" aria-label="Forget ${escapeHtml(name)}">×</button>
+          </li>`;
+        })
+        .join("");
+    }
+
+    function redrawAll() {
+      redrawPlayers();
+      redrawSaved();
+    }
+
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const name = nameInput.value.trim();
       if (!name) return;
-      if (state.players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+      if (isInQuiz(name)) {
         nameInput.setCustomValidity("Name already added");
         nameInput.reportValidity();
         return;
       }
       state.players.push({ id: uid(), name, score: 0 });
+      rememberPlayer(name);
       nameInput.value = "";
       nameInput.setCustomValidity("");
       save();
-      redrawPlayers();
+      redrawAll();
     });
     nameInput.addEventListener("input", () => nameInput.setCustomValidity(""));
 
@@ -142,7 +198,35 @@
       if (!id) return;
       state.players = state.players.filter((p) => p.id !== id);
       save();
-      redrawPlayers();
+      redrawAll();
+    });
+
+    savedList.addEventListener("click", (e) => {
+      const toggleName = e.target?.dataset?.toggle || e.target.closest?.("[data-toggle]")?.dataset?.toggle;
+      const forgetName = e.target?.dataset?.forget;
+
+      if (forgetName) {
+        if (!confirm(`Forget "${forgetName}"? They'll need to be re-added next time.`)) return;
+        forgetPlayer(forgetName);
+        state.players = state.players.filter(
+          (p) => p.name.toLowerCase() !== forgetName.toLowerCase()
+        );
+        save();
+        redrawAll();
+        return;
+      }
+
+      if (toggleName) {
+        if (isInQuiz(toggleName)) {
+          state.players = state.players.filter(
+            (p) => p.name.toLowerCase() !== toggleName.toLowerCase()
+          );
+        } else {
+          state.players.push({ id: uid(), name: toggleName, score: 0 });
+        }
+        save();
+        redrawAll();
+      }
     });
 
     startBtn.addEventListener("click", () => {
@@ -154,7 +238,7 @@
       render();
     });
 
-    redrawPlayers();
+    redrawAll();
   }
 
   // Collect ------------- (build Round 6)

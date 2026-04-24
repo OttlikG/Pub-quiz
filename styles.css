@@ -170,6 +170,38 @@ button.ghost {
   color: var(--muted);
   padding: 0 0.2rem;
   font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.chips.selectable li {
+  padding: 0;
+  overflow: hidden;
+}
+.chips.selectable li .chip-toggle {
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.95rem;
+  border-radius: 999px 0 0 999px;
+}
+.chips.selectable li .chip-forget {
+  padding: 0.35rem 0.55rem;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+.chips.selectable li .chip-toggle:hover {
+  background: rgba(245, 158, 11, 0.12);
+}
+.chips.selectable li.selected {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: var(--accent);
+}
+.chips.selectable li.selected .chip-toggle {
+  color: var(--accent-2);
+  font-weight: 600;
 }
 
 .hint { color: var(--muted); font-size: 0.9rem; }
