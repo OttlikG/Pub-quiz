@@ -1,7 +1,7 @@
 (() => {
-  const STORAGE_KEY = "pub-quiz-state-v8";
+  const STORAGE_KEY = "pub-quiz-state-v9";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
-  const QUESTIONS_PER_ROUND = 5;
+  const QUESTIONS_PER_ROUND = 3;
   const TOTAL_ROUNDS = 6;
 
   const TITLE_PARTS = {
