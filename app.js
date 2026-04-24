@@ -1,7 +1,6 @@
 (() => {
-  const STORAGE_KEY = "pub-quiz-state-v9";
+  const STORAGE_KEY = "pub-quiz-state-v10";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
-  const QUESTIONS_PER_ROUND = 3;
   const TOTAL_ROUNDS = 6;
 
   const TITLE_PARTS = {
@@ -41,7 +40,6 @@
       players: [], // { id, name, score }
       rounds: [], // built once the quiz starts
       cursor: { round: 0, question: 0 },
-      scoredThisQuestion: {}, // playerId -> bool, reset per question
     };
   }
 
@@ -87,37 +85,19 @@
   }
 
   function buildRounds(s) {
-    const generalCount = TOTAL_ROUNDS - 1; // always reserve one slot for the pass round
-
-    const topics = shuffle(GENERAL_ROUNDS);
-    const generalTopics = topics.slice(0, generalCount);
-
-    const rounds = generalTopics.map((r) => ({
-      title: r.title,
-      description: r.description,
-      kind: "general",
-      questions: shuffle(r.questions).slice(0, QUESTIONS_PER_ROUND).map((q) => ({ ...q })),
+    // Every round is now pass-the-phone on its own topic: each player
+    // answers one question per round, and the next-player picker appears
+    // between questions.
+    const topics = shuffle(GENERAL_ROUNDS).slice(0, TOTAL_ROUNDS);
+    return topics.map((topic) => ({
+      title: topic.title,
+      description: `Each player answers one question from "${topic.title}". Pick who goes next after every answer.`,
+      kind: "pass",
+      topic: topic.title,
+      pool: shuffle(topic.questions).map((q) => ({ ...q })),
+      pending: s.players.map((p) => p.id),
+      questions: [],
     }));
-
-    {
-      // Pick a topic that wasn't used by the general rounds, falling back
-      // to any topic if we've somehow used them all.
-      const passTopic = topics[generalCount] || pick(GENERAL_ROUNDS);
-      rounds.push({
-        title: `Pass the Phone — ${passTopic.title}`,
-        description: `Pass the phone after each question. The current holder picks who goes next — they'll get a fresh question from "${passTopic.title}".`,
-        kind: "pass",
-        topic: passTopic.title,
-        // Shuffled bank of questions; one is drawn each time a player is picked.
-        pool: shuffle(passTopic.questions).map((q) => ({ ...q })),
-        // Players who haven't had a turn yet.
-        pending: s.players.map((p) => p.id),
-        // Turns as they're played, in order; cursor.question indexes into this.
-        questions: [],
-      });
-    }
-
-    return rounds;
   }
 
   // ---------- rendering ----------
@@ -303,8 +283,7 @@
 
     document.getElementById("intro-start").addEventListener("click", () => {
       state.cursor.question = 0;
-      state.scoredThisQuestion = {};
-      state.phase = round.kind === "pass" ? "passPicker" : "question";
+      state.phase = "passPicker";
       save();
       render();
     });
@@ -386,30 +365,23 @@
 
     document.getElementById("q-round").textContent = state.cursor.round + 1;
     document.getElementById("q-num").textContent = state.cursor.question + 1;
-    document.getElementById("q-total").textContent =
-      round.kind === "pass" ? state.players.length : round.questions.length;
+    document.getElementById("q-total").textContent = state.players.length;
     document.getElementById("q-category").textContent = round.title;
     document.getElementById("q-text").textContent = q.q;
 
     const authorEl = document.getElementById("q-author");
-    if (round.kind === "pass") {
-      const player = state.players.find((p) => p.id === q.assignedTo);
-      authorEl.textContent = player ? `For ${player.name} — tap your answer` : "";
-      authorEl.classList.remove("hidden");
-    }
+    const player = state.players.find((p) => p.id === q.assignedTo);
+    authorEl.textContent = player ? `For ${player.name} — tap your answer` : "";
+    authorEl.classList.remove("hidden");
 
     const answerBox = document.getElementById("q-answer");
     const answerText = document.getElementById("q-answer-text");
-    const scoring = document.getElementById("q-scoring");
-    const playersGrid = document.getElementById("q-players");
     const optionsEl = document.getElementById("q-options");
-    const revealBtn = document.getElementById("q-reveal");
     const nextBtn = document.getElementById("q-next");
 
     answerText.textContent = q.a;
 
-    // Use a stable shuffle cached on the question so a re-render (e.g. after
-    // toggling a score) doesn't reshuffle the options under the players' feet.
+    // Stable shuffle cached on the question so re-renders don't reshuffle.
     if (!q._optionOrder) {
       const pool = [q.a, ...(q.wrong || [])];
       q._optionOrder = shuffle(pool);
@@ -436,95 +408,35 @@
       });
     }
 
-    if (round.kind === "pass") {
-      // The assigned player taps their own answer; scoring is automatic.
-      scoring.classList.add("hidden");
-      revealBtn.classList.add("hidden");
+    nextBtn.textContent = (round.pending || []).length > 0 ? "Who's next?" : "Finish round";
 
-      nextBtn.textContent = (round.pending || []).length > 0 ? "Who's next?" : "Finish round";
-
-      if (q._answered) {
-        highlightOptions(q._pickedOption);
-        answerBox.classList.remove("hidden");
-        nextBtn.classList.remove("hidden");
-      } else {
-        optionsEl.querySelectorAll("button.option").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            if (q._answered) return;
-            const picked = btn.dataset.option;
-            const player = state.players.find((p) => p.id === q.assignedTo);
-            if (player && picked === q.a) player.score += 1;
-            q._answered = true;
-            q._pickedOption = picked;
-            highlightOptions(picked);
-            answerBox.classList.remove("hidden");
-            nextBtn.classList.remove("hidden");
-            renderLeaderboard();
-            save();
-          });
+    if (q._answered) {
+      highlightOptions(q._pickedOption);
+      answerBox.classList.remove("hidden");
+      nextBtn.classList.remove("hidden");
+    } else {
+      optionsEl.querySelectorAll("button.option").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (q._answered) return;
+          const picked = btn.dataset.option;
+          if (player && picked === q.a) player.score += 1;
+          q._answered = true;
+          q._pickedOption = picked;
+          highlightOptions(picked);
+          answerBox.classList.remove("hidden");
+          nextBtn.classList.remove("hidden");
+          renderLeaderboard();
+          save();
         });
-      }
-
-      nextBtn.addEventListener("click", () => advanceFromQuestion(round));
-      return;
-    }
-
-    function renderPlayerButtons() {
-      playersGrid.innerHTML = "";
-      state.players.forEach((p) => {
-        const btn = document.createElement("button");
-        btn.dataset.id = p.id;
-        btn.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="badge">${p.score}</span>`;
-        if (state.scoredThisQuestion[p.id]) btn.classList.add("scored");
-        btn.addEventListener("click", () => toggleScore(p.id, btn));
-        playersGrid.appendChild(btn);
       });
     }
-
-    function toggleScore(playerId, btn) {
-      const player = state.players.find((p) => p.id === playerId);
-      if (!player) return;
-      if (state.scoredThisQuestion[playerId]) {
-        state.scoredThisQuestion[playerId] = false;
-        player.score = Math.max(0, player.score - 1);
-        btn.classList.remove("scored");
-      } else {
-        state.scoredThisQuestion[playerId] = true;
-        player.score += 1;
-        btn.classList.add("scored");
-      }
-      btn.querySelector(".badge").textContent = player.score;
-      renderLeaderboard();
-      save();
-    }
-
-    revealBtn.addEventListener("click", () => {
-      answerBox.classList.remove("hidden");
-      scoring.classList.remove("hidden");
-      revealBtn.classList.add("hidden");
-      nextBtn.classList.remove("hidden");
-      highlightOptions();
-      renderPlayerButtons();
-    });
 
     nextBtn.addEventListener("click", () => advanceFromQuestion(round));
   }
 
   function advanceFromQuestion(round) {
-    state.scoredThisQuestion = {};
-    if (round.kind === "pass") {
-      if ((round.pending || []).length > 0) {
-        state.phase = "passPicker";
-      } else if (state.cursor.round + 1 < state.rounds.length) {
-        state.cursor.round += 1;
-        state.cursor.question = 0;
-        state.phase = "roundIntro";
-      } else {
-        state.phase = "final";
-      }
-    } else if (state.cursor.question + 1 < round.questions.length) {
-      state.cursor.question += 1;
-      state.phase = "question";
+    if ((round.pending || []).length > 0) {
+      state.phase = "passPicker";
     } else if (state.cursor.round + 1 < state.rounds.length) {
       state.cursor.round += 1;
       state.cursor.question = 0;

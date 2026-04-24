@@ -408,7 +408,6 @@ button.option.picked {
   letter-spacing: 0.06em;
 }
 
-.player-grid,
 .picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -444,26 +443,6 @@ button.picker-btn .badge {
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--ink);
-}
-
-.player-grid button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  text-align: left;
-}
-
-.player-grid button.scored {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: var(--good);
-  color: var(--good);
-}
-
-.player-grid button .badge {
-  background: rgba(255,255,255,0.1);
-  border-radius: 999px;
-  padding: 0 0.5rem;
-  font-size: 0.8rem;
 }
 
 #leaderboard {
