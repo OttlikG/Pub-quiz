@@ -1,5 +1,5 @@
 (() => {
-  const STORAGE_KEY = "pub-quiz-state-v1";
+  const STORAGE_KEY = "pub-quiz-state-v2";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
   const QUESTIONS_PER_ROUND = 5;
   const TOTAL_ROUNDS = 6;
@@ -281,20 +281,29 @@
 
     const qInput = document.getElementById("collect-question");
     const aInput = document.getElementById("collect-answer");
+    const wrongInputs = Array.from(app.querySelectorAll(".collect-wrong"));
     const nextBtn = document.getElementById("collect-next");
 
     qInput.value = "";
     aInput.value = "";
+    wrongInputs.forEach((el) => (el.value = ""));
     qInput.focus();
 
     nextBtn.addEventListener("click", () => {
       const q = qInput.value.trim();
       const a = aInput.value.trim();
-      if (!q || !a) {
-        qInput.focus();
+      const wrong = wrongInputs.map((el) => el.value.trim());
+      if (!q || !a || wrong.some((w) => !w)) {
+        if (!q || !a) qInput.focus();
+        else wrongInputs.find((el) => !el.value.trim())?.focus();
         return;
       }
-      playerRound.questions.push({ q, a, authorId: player.id });
+      const all = [a, ...wrong].map((s) => s.toLowerCase());
+      if (new Set(all).size !== all.length) {
+        alert("Answers must all be different from each other.");
+        return;
+      }
+      playerRound.questions.push({ q, a, wrong, authorId: player.id });
       state.cursor.collectIdx += 1;
 
       if (state.cursor.collectIdx >= state.players.length) {
@@ -353,10 +362,38 @@
     const answerText = document.getElementById("q-answer-text");
     const scoring = document.getElementById("q-scoring");
     const playersGrid = document.getElementById("q-players");
+    const optionsEl = document.getElementById("q-options");
     const revealBtn = document.getElementById("q-reveal");
     const nextBtn = document.getElementById("q-next");
 
     answerText.textContent = q.a;
+
+    // Use a stable shuffle cached on the question so a re-render (e.g. after
+    // toggling a score) doesn't reshuffle the options under the players' feet.
+    if (!q._optionOrder) {
+      const pool = [q.a, ...(q.wrong || [])];
+      q._optionOrder = shuffle(pool);
+      save();
+    }
+
+    const letters = ["A", "B", "C", "D"];
+    optionsEl.innerHTML = "";
+    q._optionOrder.forEach((text, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "option";
+      btn.dataset.option = text;
+      btn.innerHTML = `<span class="letter">${letters[i] || ""}</span><span class="opt-text">${escapeHtml(text)}</span>`;
+      optionsEl.appendChild(btn);
+    });
+
+    function highlightOptions() {
+      optionsEl.querySelectorAll("button.option").forEach((btn) => {
+        if (btn.dataset.option === q.a) btn.classList.add("correct");
+        else btn.classList.add("wrong");
+        btn.disabled = true;
+      });
+    }
 
     function renderPlayerButtons() {
       playersGrid.innerHTML = "";
@@ -397,6 +434,7 @@
       scoring.classList.remove("hidden");
       revealBtn.classList.add("hidden");
       nextBtn.classList.remove("hidden");
+      highlightOptions();
       renderPlayerButtons();
     });
 

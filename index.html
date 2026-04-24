@@ -71,17 +71,24 @@
     <section class="card">
       <h2>Round 6 &mdash; collect player questions</h2>
       <p class="hint">
-        Hand the device to <strong id="collect-player"></strong>. They type a question and its answer,
-        then press <em>Save &amp; pass</em>. Others shouldn't peek.
+        Hand the device to <strong id="collect-player"></strong>. They type a question,
+        the correct answer, and three plausible wrong answers, then press
+        <em>Save &amp; pass</em>. Others shouldn't peek.
       </p>
       <label class="field">
         <span>Question</span>
         <textarea id="collect-question" rows="3" maxlength="280" placeholder="e.g. Which element has the atomic number 79?"></textarea>
       </label>
       <label class="field">
-        <span>Answer</span>
+        <span>Correct answer</span>
         <input type="text" id="collect-answer" maxlength="120" placeholder="e.g. Gold" />
       </label>
+      <div class="field">
+        <span>Three wrong options</span>
+        <input type="text" class="collect-wrong" maxlength="120" placeholder="Wrong option 1" />
+        <input type="text" class="collect-wrong" maxlength="120" placeholder="Wrong option 2" />
+        <input type="text" class="collect-wrong" maxlength="120" placeholder="Wrong option 3" />
+      </div>
       <div class="row">
         <button id="collect-next" class="primary">Save &amp; pass</button>
         <span id="collect-progress" class="muted"></span>
@@ -106,6 +113,8 @@
       </div>
       <h2 id="q-text"></h2>
       <p id="q-author" class="muted hidden"></p>
+
+      <div id="q-options" class="options"></div>
 
       <div id="q-answer" class="answer hidden">
         <span class="label">Answer:</span>

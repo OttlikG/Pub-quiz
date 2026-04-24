@@ -241,6 +241,64 @@ button.ghost {
 .muted { color: var(--muted); }
 .hidden { display: none !important; }
 
+.field input.collect-wrong + input.collect-wrong {
+  margin-top: 0.4rem;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+@media (min-width: 520px) {
+  .options { grid-template-columns: 1fr 1fr; }
+}
+
+button.option {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.35;
+}
+button.option .letter {
+  flex: 0 0 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+button.option .opt-text { flex: 1; }
+
+button.option:disabled { opacity: 1; cursor: default; }
+
+button.option.correct {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: var(--good);
+  color: var(--good);
+}
+button.option.correct .letter {
+  background: rgba(34, 197, 94, 0.35);
+  color: var(--good);
+}
+button.option.wrong {
+  opacity: 0.55;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 .answer {
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.4);
