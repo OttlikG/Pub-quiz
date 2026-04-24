@@ -28,11 +28,12 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 body {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   grid-template-areas:
     "top"
@@ -72,8 +73,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   padding: 0.25rem 0.5rem;
   border-bottom: 1px solid var(--border);
+  min-width: 0;
 }
 
 .topbar h1 {
@@ -81,12 +84,31 @@ body {
   font-size: 1.5rem;
   letter-spacing: 0.02em;
   color: var(--accent-2);
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding-right: 0.5rem;
+}
+
+.topbar #reset-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .topbar h1 { font-size: 1.2rem; }
+}
+
+@media (max-width: 380px) {
+  .topbar h1 { font-size: 1.05rem; }
+  .topbar #reset-btn {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.8rem;
+  }
 }
 
 #app { grid-area: main; }
@@ -97,8 +119,16 @@ body {
   border-radius: 14px;
   padding: 1.5rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  max-width: 720px;
+  max-width: min(720px, 100%);
   margin: 0 auto;
+  overflow-wrap: anywhere;
+}
+
+h2#q-text,
+#picker-title,
+#intro-title {
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 @media (max-width: 440px) {
