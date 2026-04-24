@@ -13,7 +13,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Pub Quiz</title>
-  <link rel="stylesheet" href="styles.css?v=8" />
+  <link rel="stylesheet" href="styles.css?v=9" />
 </head>
 <body>
   <header class="topbar">
@@ -60,6 +60,15 @@
 
       <p class="hint">Add at least 2 players, then start the quiz. The final round is always a pass-the-phone round on a single topic — each player answers a short set of questions on their own.</p>
       <button id="start-btn" class="primary" disabled>Start quiz</button>
+    </section>
+  </template>
+
+  <template id="tpl-pass-picker">
+    <section class="card center">
+      <p class="muted">Pass-the-phone round &middot; <span id="picker-progress"></span></p>
+      <h2 id="picker-title">Who's next?</h2>
+      <p class="hint">Tap a player&mdash;they'll get a fresh question from the same topic.</p>
+      <div id="picker-players" class="picker-grid"></div>
     </section>
   </template>
 
@@ -117,7 +126,7 @@
     </section>
   </template>
 
-  <script src="questions.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="questions.js?v=9"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 (() => {
-  const STORAGE_KEY = "pub-quiz-state-v7";
+  const STORAGE_KEY = "pub-quiz-state-v8";
   const KNOWN_PLAYERS_KEY = "pub-quiz-known-players-v1";
   const QUESTIONS_PER_ROUND = 5;
   const TOTAL_ROUNDS = 6;
@@ -36,7 +36,7 @@
 
   function newState() {
     return {
-      phase: "setup", // setup | roundIntro | passHandoff | question | final
+      phase: "setup", // setup | roundIntro | passPicker | passHandoff | question | final
       title: "Pub Quiz",
       players: [], // { id, name, score }
       rounds: [], // built once the quiz starts
@@ -103,19 +103,17 @@
       // Pick a topic that wasn't used by the general rounds, falling back
       // to any topic if we've somehow used them all.
       const passTopic = topics[generalCount] || pick(GENERAL_ROUNDS);
-      const playerOrder = shuffle(s.players);
-      const pickedQs = shuffle(passTopic.questions).slice(0, playerOrder.length);
-      const passQuestions = pickedQs.map((q, i) => ({
-        ...q,
-        assignedTo: playerOrder[i].id,
-        playerIndex: i,
-      }));
       rounds.push({
         title: `Pass the Phone — ${passTopic.title}`,
-        description: `Each player answers one question from "${passTopic.title}". Hand the phone to the next player after every question.`,
+        description: `Pass the phone after each question. The current holder picks who goes next — they'll get a fresh question from "${passTopic.title}".`,
         kind: "pass",
         topic: passTopic.title,
-        questions: passQuestions,
+        // Shuffled bank of questions; one is drawn each time a player is picked.
+        pool: shuffle(passTopic.questions).map((q) => ({ ...q })),
+        // Players who haven't had a turn yet.
+        pending: s.players.map((p) => p.id),
+        // Turns as they're played, in order; cursor.question indexes into this.
+        questions: [],
       });
     }
 
@@ -134,6 +132,7 @@
     switch (state.phase) {
       case "setup": return renderSetup();
       case "roundIntro": return renderRoundIntro();
+      case "passPicker": return renderPassPicker();
       case "passHandoff": return renderPassHandoff();
       case "question": return renderQuestion();
       case "final": return renderFinal();
@@ -305,10 +304,50 @@
     document.getElementById("intro-start").addEventListener("click", () => {
       state.cursor.question = 0;
       state.scoredThisQuestion = {};
-      state.phase = round.kind === "pass" ? "passHandoff" : "question";
+      state.phase = round.kind === "pass" ? "passPicker" : "question";
       save();
       render();
     });
+  }
+
+  // Pass-the-phone picker -----------
+
+  function renderPassPicker() {
+    instantiateTemplate("tpl-pass-picker");
+    const round = state.rounds[state.cursor.round];
+    const total = state.players.length;
+    const pendingIds = round.pending || [];
+    const played = total - pendingIds.length;
+
+    document.getElementById("picker-title").textContent =
+      played === 0 ? "Who starts?" : "Who's next?";
+    document.getElementById("picker-progress").textContent =
+      `${played} of ${total} done`;
+
+    const grid = document.getElementById("picker-players");
+    grid.innerHTML = "";
+    pendingIds.forEach((pid) => {
+      const player = state.players.find((p) => p.id === pid);
+      if (!player) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "picker-btn";
+      btn.innerHTML = `<span>Next Player: ${escapeHtml(player.name)}</span><span class="badge">${player.score}</span>`;
+      btn.addEventListener("click", () => pickNextPassPlayer(round, pid));
+      grid.appendChild(btn);
+    });
+  }
+
+  function pickNextPassPlayer(round, playerId) {
+    if (!round.pool || round.pool.length === 0) return;
+    const nextQ = round.pool.shift();
+    nextQ.assignedTo = playerId;
+    round.questions.push(nextQ);
+    round.pending = round.pending.filter((id) => id !== playerId);
+    state.cursor.question = round.questions.length - 1;
+    state.phase = "passHandoff";
+    save();
+    render();
   }
 
   // Pass-the-phone handoff -----------
@@ -402,13 +441,7 @@
       scoring.classList.add("hidden");
       revealBtn.classList.add("hidden");
 
-      const nextQ = round.questions[state.cursor.question + 1];
-      if (nextQ) {
-        const nextPlayer = state.players.find((p) => p.id === nextQ.assignedTo);
-        nextBtn.textContent = nextPlayer ? `Next player: ${nextPlayer.name}` : "Next";
-      } else {
-        nextBtn.textContent = "Finish round";
-      }
+      nextBtn.textContent = (round.pending || []).length > 0 ? "Who's next?" : "Finish round";
 
       if (q._answered) {
         highlightOptions(q._pickedOption);
@@ -479,9 +512,19 @@
 
   function advanceFromQuestion(round) {
     state.scoredThisQuestion = {};
-    if (state.cursor.question + 1 < round.questions.length) {
+    if (round.kind === "pass") {
+      if ((round.pending || []).length > 0) {
+        state.phase = "passPicker";
+      } else if (state.cursor.round + 1 < state.rounds.length) {
+        state.cursor.round += 1;
+        state.cursor.question = 0;
+        state.phase = "roundIntro";
+      } else {
+        state.phase = "final";
+      }
+    } else if (state.cursor.question + 1 < round.questions.length) {
       state.cursor.question += 1;
-      state.phase = round.kind === "pass" ? "passHandoff" : "question";
+      state.phase = "question";
     } else if (state.cursor.round + 1 < state.rounds.length) {
       state.cursor.round += 1;
       state.cursor.question = 0;
